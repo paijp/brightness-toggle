@@ -11,9 +11,9 @@ class MainActivity : Activity() {
 
     companion object {
         // 輝度の4段階 (0〜255スケール)
-        // 0%=1, 20%=51, 50%=128, 100%=255
-        val BRIGHTNESS_STEPS = intArrayOf(1, 51, 128, 255)
-        val BRIGHTNESS_LABELS = arrayOf("0%", "20%", "50%", "100%")
+        // 0%=1, 10%=26, 30%=77, 100%=255
+        val BRIGHTNESS_STEPS = intArrayOf(1, 26, 77, 255)
+        val BRIGHTNESS_LABELS = arrayOf("0%", "10%", "30%", "100%")
 
         const val PREFS_NAME = "BrightnessTogglePrefs"
         const val KEY_LAST_BRIGHTNESS = "last_brightness"

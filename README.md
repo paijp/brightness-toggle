@@ -1,15 +1,14 @@
 # BrightnessToggle for BlackBerry KEYone (BBF100-9)
 
-コンビニエンスキーを押すたびに画面輝度を5段階で切り替えるAndroidアプリです。
+コンビニエンスキーを押すたびに画面輝度を4段階で切り替えるAndroidアプリです。
 
 ## 輝度ステップ
 | ステップ | 輝度 |
 |---------|------|
 | 1       | 0%   |
-| 2       | 25%  |
-| 3       | 50%  |
-| 4       | 75%  |
-| 5       | 100% |
+| 2       | 10%  |
+| 3       | 30%  |
+| 4       | 100% |
 
 ## セットアップ手順
 
@@ -19,6 +18,8 @@ Android Studio でプロジェクトを開き、`Build > Make Project` → `Run`
 ./gradlew assembleDebug
 ```
 生成された `app-debug.apk` を KEYone に転送してインストール。
+
+またはリポジトリの `release/BrightnessToggle.apk` を直接インストールできます。
 
 ### 2. 権限の付与（初回起動時）
 アプリ初回起動時に **「設定の変更を許可」** 画面が開きます。
@@ -36,10 +37,11 @@ Android Studio でプロジェクトを開き、`Build > Make Project` → `Run`
 3. シングルタップ → 「アプリを起動」→「輝度切替」を選択
 
 ## 動作の仕組み
-- `SharedPreferences` に現在のステップ番号を保存
-- 起動のたびにステップを +1 して `Settings.System.SCREEN_BRIGHTNESS` を変更
-- 0.8秒後に自動でアクティビティを終了（バックグラウンドに残らない）
+- `SharedPreferences` に前回の輝度値を保存（読み取り失敗時のフォールバック用）
+- 起動のたびに現在値より大きい次のステップへ進み `Settings.System.SCREEN_BRIGHTNESS` を変更
+- UIを表示せず即座にアクティビティを終了（バックグラウンドに残らない）
 - 自動輝度は自動的にオフになります
+- ロック画面上でも動作します
 
 ## 注意事項
 - Android 8.0 (Oreo) 以上が必要（KEYone は最終 Android 8.1 なので対応）
@@ -52,7 +54,6 @@ app/src/main/
 ├── java/com/example/brightnesstoggle/
 │   └── MainActivity.kt          # メインロジック
 ├── res/
-│   ├── layout/activity_main.xml # 画面レイアウト
 │   └── values/
 │       ├── strings.xml
 │       └── styles.xml
