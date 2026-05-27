@@ -4,6 +4,7 @@ plugins {
 }
 
 android {
+    namespace "com.example.brightnesstoggle"
     compileSdk 33
 
     defaultConfig {
