@@ -1,6 +1,7 @@
 package com.example.brightnesstoggle
 
 import android.app.Activity
+import android.content.Context
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.TextView
@@ -13,8 +14,9 @@ class MainActivity : Activity() {
         // 最低値は1(完全オフは避ける), 25%=64, 50%=128, 75%=191, 100%=255
         val BRIGHTNESS_STEPS = intArrayOf(1, 64, 128, 191, 255)
         val BRIGHTNESS_LABELS = arrayOf("0%", "25%", "50%", "75%", "100%")
-        // 現在値からステップを探すときの許容誤差
-        const val TOLERANCE = 10
+
+        const val PREFS_NAME = "BrightnessTogglePrefs"
+        const val KEY_LAST_BRIGHTNESS = "last_brightness"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,27 +44,20 @@ class MainActivity : Activity() {
             )
 
             // 現在の輝度値を読む (0〜255)
-            val currentBrightness = Settings.System.getInt(
-                contentResolver,
-                Settings.System.SCREEN_BRIGHTNESS,
-                128 // 読めない場合は中間値をデフォルトに
-            )
+            // 読み出し失敗時はSharedPreferencesの最終保存値を使う
+            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val currentBrightness = try {
+                Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS)
+            } catch (e: Settings.SettingNotFoundException) {
+                prefs.getInt(KEY_LAST_BRIGHTNESS, BRIGHTNESS_STEPS[0])
+            }
 
-            // 現在値より大きい最初のステップを探す（常に増加方向）
-            // 例: 24% → 25%、26% → 50%
-            // ステップ値ぴったりの場合(誤差TOLERANCE以内)は次のステップへ進む
-            val exactMatchIndex = BRIGHTNESS_STEPS.indices.firstOrNull { i ->
-                Math.abs(BRIGHTNESS_STEPS[i] - currentBrightness) <= TOLERANCE
-            }
-            val nextStepIndex = if (exactMatchIndex != null) {
-                // ステップ値にぴったり一致 → 次のステップへ
-                (exactMatchIndex + 1) % BRIGHTNESS_STEPS.size
-            } else {
-                // ステップ値の間にある → 現在値より大きい最初のステップへ
-                BRIGHTNESS_STEPS.indices.firstOrNull { i ->
-                    BRIGHTNESS_STEPS[i] > currentBrightness
-                } ?: 0  // 最大値を超えていたら最初(0%)へ折り返す
-            }
+            // 現在値より大きい最初のステップへ進む（常に増加方向）
+            // ステップ値ぴったりの場合も「より大きい」条件から外れるので自動的に次へ進む
+            // 例: 現在=64(25%) → 次は128(50%)、現在=26 → 次は64(25%)
+            val nextStepIndex = BRIGHTNESS_STEPS.indices.firstOrNull { i ->
+                BRIGHTNESS_STEPS[i] > currentBrightness
+            } ?: 0  // 最大値以上なら最初(0%)へ折り返す
 
             val newBrightness = BRIGHTNESS_STEPS[nextStepIndex]
             val label = BRIGHTNESS_LABELS[nextStepIndex]
@@ -73,6 +68,9 @@ class MainActivity : Activity() {
                 Settings.System.SCREEN_BRIGHTNESS,
                 newBrightness
             )
+
+            // 設定値をSharedPreferencesにも常に保存（次回のフォールバック用）
+            prefs.edit().putInt(KEY_LAST_BRIGHTNESS, newBrightness).apply()
 
             // ウィンドウの輝度にも即座に反映
             val lp = window.attributes
