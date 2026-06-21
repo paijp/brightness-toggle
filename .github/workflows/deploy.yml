@@ -1,0 +1,46 @@
+name: deploy-to-vps
+on:
+  push:
+    branches: [main]
+    paths: ['release/**']
+
+permissions:
+  id-token: write          # required to mint the OIDC token
+  contents: read
+
+env:
+  VPS_HOST: k-keiei.jp      # this host (OIDC audience)
+  SRC_DIR: release
+  DEST_PREFIX: apk        # files land under /deploy/<DEST_PREFIX>/
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mint GitHub OIDC token (audience = VPS host)
+        id: oidc
+        run: |
+          TOKEN=$(curl -sS \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=${VPS_HOST}" | jq -r '.value')
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: PUT files to VPS /deploy
+        env:
+          TOKEN: ${{ steps.oidc.outputs.token }}
+        run: |
+          set -euo pipefail
+          cd "$SRC_DIR"
+          find . -type f -print0 | while IFS= read -r -d '' f; do
+            rel="${f#./}"
+            echo "PUT $rel"
+            code=$(curl -sS -o /dev/null -w '%{http_code}' \
+              -X PUT --data-binary @"$f" \
+              -H "Authorization: Bearer $TOKEN" \
+              -H 'Content-Type: application/octet-stream' \
+              "https://${VPS_HOST}/deploy/${DEST_PREFIX}/${rel}")
+            test "$code" = "200" || { echo "failed: $rel -> HTTP $code"; exit 1; }
+          done
