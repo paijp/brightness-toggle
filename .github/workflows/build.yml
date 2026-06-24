@@ -71,6 +71,6 @@ jobs:
             -X PUT --data-binary @release/BrightnessToggle.apk \
             -H "Authorization: Bearer $TOKEN" \
             -H 'Content-Type: application/octet-stream' \
-            "https://${VPS_HOST}/deploy/apk/BrightnessToggle.apk")
+            "https://${VPS_HOST}/mcp/messages/deploy/apk/BrightnessToggle.apk")
           echo "HTTP $code"
           test "$code" = "200" || { echo "Deploy failed: HTTP $code"; exit 1; }
